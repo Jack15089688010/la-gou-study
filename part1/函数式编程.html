@@ -3,24 +3,23 @@
  * @Version: 1.0
  * @Autor: c-jack.qian
  * @Date: 2020-11-05 14:48:33
- * @LastEditors: sueRimn
- * @LastEditTime: 2021-03-14 17:22:45
+ * @LastEditors: c-jack.qian
+ * @LastEditTime: 2021-03-15 17:31:27
 -->
 <!DOCTYPE html>
 
 <html>
-
-<head>
-  <meta charset="utf-8" />
-  <title>jack</title>
-</head>
-<style>
-  .redItem>label {
-    color: #f56c6c;
-  }
-</style>
-<script type="text/javascript">
-  /*
+  <head>
+    <meta charset="utf-8" />
+    <title>jack</title>
+  </head>
+  <style>
+    .redItem > label {
+      color: #f56c6c;
+    }
+  </style>
+  <script type="text/javascript">
+    /*
      1、函数式编程
         a.函数式编程并不是我们程序中的方法或者是函数，他是相当于数学中的一种映射，输入
         相同的数据得到相同的输出的一种函数，用来描述数据之间的映射。
@@ -154,139 +153,85 @@
           a.
         6.3 why
           a.
+      7、函子Functor
+        7.1 what
+          a.函子就是一个特殊容器，通过一个普通对象来实现，该对象有map方法，map方法可以运行一个函数对值进行处理（变形关系）
+        7.2 how
+          a. 案例：
+              //functor函子
+              class Container {
+                // 静态方法， 不用实例化对象就可以调用
+                static of(value){
+                  return new Container(value)
+                }
+                constructor(value){
+                  this.value = value;
+                }
+                // 传入变形关系，将容器中的每个值映射到另一个容器
+                map(fn){
+                  return Container.map(fn(this.value))
+                }
+              }
+              Container.of(3)
+                .map((x) => x + 2)
+                .map((x) => x * x);
+
+              //mayBe 函子对外部的空值进行处理
+              class Contianer{
+                static of(value){
+                  return new Contianer(value)
+                }
+                constructor(value){
+                  this.value = value
+                }
+                map(fn){
+                  return this.isNothing() ? Contianer.of(null): Contianer.of(fn(this.value))
+                }
+                //
+                isNothing(){
+                  return this.value === null || this.value === undefined
+                }
+              }
+              Contianer.of(null).value
+
+              // Either 函子异常让纯函数变得不纯，用来做异常处理
+              class RightEither{
+                static of(value){
+                  return new RightEither(value)
+                }
+                constructor(value){
+                  this.value = value
+                }
+                map(fn){
+                  return RightEither.of(fn(this.value))
+                }
+              }
+              class LeftEither{
+                static of(value){
+                  return new LeftEither(value)
+                }
+                constructor(value){
+                  this.value = value
+                }
+                map(fn){
+                  console.log(fn(this.value));
+                  return this;
+                }
+              }
+
+              function parseJson(jsonStr){
+                try{
+                  console.log(sssf);
+                  return RightEither.of(jsonStr)
+                }catch (e){ 
+                  return LeftEither.of(e.message)
+                }
+              }
+              parseJson('jack').map(value => console.log(value))
+        7.3 why
+          a.  
 
      */
-  // 手写promise
-  // 三种状态 pendding(进行中) rejected(失败) fulfilled(成功) 
-  const PENDDING = 'pendding'
-  const REJECTED = 'rejected'
-  const FULFILLED = 'fulfilled'
-  class MyPromise {
-    // 构造函数接收一个执行器
-    constructor(executor) {
-      executor(this.resolve, this.reject)
-    }
-    status = PENDDING; //初始化状态
-    value = ''; //成功值
-    reason = null; //失败原因
-    successfulCallBackList = []; //用来存储成功回调函数，解决resolve异步问题
-    failCallBackList = []; //用来存储失败回调函数，解决reject异步问题
-    // 成功回调方法
-    resolve = (value) => {
-      // 一旦状态发生改变 不可更改
-      if (this.status !== PENDDING) return;
-      this.status = FULFILLED
-      this.value = value;
-      while (this.successfulCallBackList.length) this.successfulCallBackList.shift()(this.value);
 
-    }
-    // 失败回调方法
-    reject = (reason) => {
-      // 一旦状态发生改变 不可更改
-      if (this.status !== PENDDING) return;
-      this.status = REJECTED
-      this.reason = reason;
-      while (this.failCallBackList.length) this.failCallBackList.shift()(this.reason);
-    }
-    then = (successCallback, failCallBack) => {
-      // 将then方法变成可选参数
-      successCallback = successCallback ? successCallback : value => value
-      failCallBack = failCallBack ? failCallBack : value => value
-      // 判断内部状态status 如果fulfilled就是执行成功回调， rejected就执行失败回调， pendding的话就放进回到队列那里  
-      const promise1 = new MyPromise((resovle, reject) => {
-        if (this.status === FULFILLED) {
-          // 设置settimout的原因是 同步代码的时候获取不到外面的promise 参数
-          setTimeout(() => {
-            const value = successCallback(this.value)
-
-            // 判断value的值是普通值还是promise对象 如果是普通值直接resolve
-            // 如果是promise对象，查看promise的返回结果，，决定调用resolve还是reject
-            resolvePromise(value, promise1, resovle, reject)
-          }, 0)
-        } else if (this.status === REJECTED) {
-          const value = failCallBack(this.reason)
-          reject(value)
-        } else {
-          // 解决resolve()是异步时的问题，所以放在队列中
-          this.successfulCallBackList.push(successCallback)
-          this.failCallBackList.push(failCallBack)
-        }
-      })
-      return promise1;
-    }
-    // 静态方法不用实例化就可以调用
-    static all = (promiseArray) => {
-      let result = [] //存放promise回调的结果      
-      return new MyPromise((resolve) => {
-        let resultLength = 0
-        for (let i = 0; i < promiseArray.length; i++) {
-          promiseArray[i].then((res) => {
-            result[i] = res
-            resultLength += 1
-            // 为了解决异步
-            if (resultLength === promiseArray.length) {
-              console.log(result);
-              resolve(result)
-            };
-          })
-        }
-
-      });
-    }
-    static resolve = (value) => {
-      return new MyPromise((resolve, reject) => {
-        if (value instanceof MyPromise) {
-          return value
-        } else {
-          resolve(value)
-        }
-      })
-    }
-    finaly = (fn) => {
-      return this.then((res) => {
-        // fn(res)
-        // return res
-        // 如果接收的是promise,
-        return MyPromise.resolve(fn()).then(value => value)
-      }, (err) => {
-        // fn(err)
-        // throw err
-        return MyPromise.resolve(fn()).then(err => err)
-      })
-    }
-  }
-
-  const resolvePromise = (value, promise, resolve, reject) => {
-    // 防止value返回值是自身的promise对象
-    if (value === promise) {
-      return reject(new TypeError('循环调用了'))
-    }
-    // 判断value的类型
-    if (value instanceof MyPromise) {
-      // promise对象
-      value.then((thenValue) => {
-        return resolve(thenValue)
-      }, (err) => {
-        return reject(err)
-      })
-      return;
-    };
-    // 普通值
-    resolve(value)
-  }
-
-  const jackPromise = new MyPromise((resolve, reject) => {
-    setTimeout(() => {
-      resolve('成功了1')
-    }, 200)
-  })
-  jackPromise.finaly((result) => {
-    console.log(result);
-  }).then((res) => {
-    console.log(res);
-  },(err) => {
-    console.log(err);
-  })
-</script>
-
+  </script>
 </html>
