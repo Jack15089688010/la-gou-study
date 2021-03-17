@@ -4,7 +4,7 @@
  * @Autor: c-jack.qian
  * @Date: 2020-11-05 14:48:33
  * @LastEditors: c-jack.qian
- * @LastEditTime: 2021-03-15 17:31:27
+ * @LastEditTime: 2021-03-17 18:23:44
 -->
 <!DOCTYPE html>
 
@@ -106,28 +106,27 @@
           a. 当有多个参数，并且有些参数是固定不变时，先传递这些参数调用它，然后返回新的函数接收剩余可变的参数，并且返回结果 
         5.2 how
           模拟原理：
-            const getNum = (a, b, c) => {
-              return a + b + c
-            }
+              //手写curry柯里化函数
+              const getTotalNum = (a, b, c) => {
+                return a + b + c;
+              };
+              const curry = (fn) => {
+                return function curriedFn(...agrs) {
+                  // 如果第一次传参的长度小于函数要接受的参数  则继续调用 curriedFn
+                  if (fn.length > agrs.length) {
+                    return function () {
+                      return curriedFn(...agrs.concat(Array.from(arguments)));
+                    };
+                  }
+                  return fn(...agrs);
+                };
+              };
 
-            const curry = (fn) => {
-              return function curriedFun (...args) {
-                // 对比剩余参数 和 函数接收的参数
-                if(args.length < fn.length){
-                  // 如果还有剩余参数
-                  return function(){
-                    // return  fn(...args.concat(Array.from(arguments)))
-                    return  curriedFun(...args.concat(Array.from(arguments)))
-                  } 
-                }
-                return fn(...args)
-              }
-            }
+              const curried = curry(getTotalNum);
 
-            const getNumCurryFun = curry(getNum)
-            console.log(getNumCurryFun(1,2,3));
-            console.log(getNumCurryFun(1,2)(3));
-            console.log(getNumCurryFun(1)(2,3));
+              console.log(curried(1)(2, 3));
+              console.log(curried()(1, 2, 3));
+              console.log(curried(1, 2, 3));
 
         5.3 why 
           a. 解决硬编码, 当有些参数值固定不变时
@@ -148,14 +147,47 @@
           b. 可以多元函数转换为一元函数，，颗粒度小，函数更灵活，可以组合使用函数产生强大的功能 
       6、函数组合  
         6.1 what
-          a.
+          a. 把多个函数组合起来组成一个新函数
         6.2 how
-          a.
+          a.    
+          // 手写函数组合flowRight
+            const frist = (arr) => {
+              return arr[0];
+            };
+            const upperCase = (str) => {
+              return str.toUpperCase();
+            };
+            const reverse = (arr) => {
+              return arr.reverse();
+            };
+
+            const flowRight = (fns) => {
+              // reverse改变原来的数组并返回
+              // reduce 接受两个参数 1、回调函数，2、初始值 ， 返回处理的结果
+              // 回调函数接受两个参数 第一个是汇总值acc，第二个是fns数组里面的一个item值，
+              return function (initialValue) {
+                return fns.reverse().reduce((acc, fn) => {
+                  // acc为上一个函数处理的后的结果值
+                  return fn(acc);
+                }, initialValue);
+              };
+            };
+
+            // 柯里化 打印
+            const trace = (tip, value) => {
+              console.log(tip,value);
+              return value
+            };
+            const traceCurried = curry(trace)
+            // 反转 第一个 大写
+            const compose = flowRight([upperCase,traceCurried('2') , frist,traceCurried('1') , reverse]);
+            const finalValue = compose(["a", "b", "c"]);
+            console.log(finalValue);
         6.3 why
-          a.
+          a. 当一个值经过多个函数处理才能得到，这时候就需要一个组合函数
       7、函子Functor
         7.1 what
-          a.函子就是一个特殊容器，通过一个普通对象来实现，该对象有map方法，map方法可以运行一个函数对值进行处理（变形关系）
+          a.函子就是一个特殊容器，通过一个普通对象来实现，该对象有map方法，map方法可以运行一个函数对值进行处理（变形关系），让容器中的每个值映射到另一个容器
         7.2 how
           a. 案例：
               //functor函子
@@ -228,10 +260,10 @@
                 }
               }
               parseJson('jack').map(value => console.log(value))
+              
         7.3 why
-          a.  
+          a. 把一些副作用控制在可控的范围内，比如异常处理，异步操作等
 
      */
-
   </script>
 </html>
